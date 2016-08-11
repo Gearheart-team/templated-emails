@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import threading
 
 from django.core.mail import EmailMultiAlternatives
@@ -20,6 +21,7 @@ except ImportError:
 
 use_pynliner = getattr(settings, 'TEMPLATEDEMAILS_USE_PYNLINER', False)
 use_celery = getattr(settings, 'TEMPLATEDEMAILS_USE_CELERY', False)
+pipeline = getattr(settings, 'TEMPLATEDEMAILS_HTMLPARSERS_PIPELINE', [])
 use_threading = not use_celery
 
 pynliner = None
@@ -105,6 +107,12 @@ class SendThread(threading.Thread):
         # try to attach the html variant
         try:
             body = render_to_string(self.html_path, context)
+            for parser_name in pipeline:
+                mod, member = parser_name.rsplit('.', 1)
+                __import__(mod)
+                module = sys.modules[mod]
+                parser_fn = getattr(module, member)
+                body = parser_fn(body)
             if pynliner:
                 body = pynliner.fromString(body)
             msg.attach_alternative(body, "text/html")
