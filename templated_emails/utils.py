@@ -13,7 +13,6 @@ from django.db import models
 from django.core.exceptions import ImproperlyConfigured
 from django.contrib.auth import get_user_model
 
-
 try:
     from celery.task import task
 except ImportError:
@@ -47,8 +46,8 @@ def get_email_directories(dir):
 
 
 def send_templated_email(recipients, template_path, context=None,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    fail_silently=False, extra_headers=None):
+                         from_email=settings.DEFAULT_FROM_EMAIL,
+                         fail_silently=False, extra_headers=None):
     """
         recipients can be either a list of emails or a list of users,
         if it is users the system will change to the language that the
@@ -58,7 +57,7 @@ def send_templated_email(recipients, template_path, context=None,
     recipient_emails = [e for e in recipients if not isinstance(e, get_user_model())]
     send = _send_task.delay if use_celery else _send
     msg = send(recipient_pks, recipient_emails, template_path, context, from_email,
-         fail_silently, extra_headers=extra_headers)
+               fail_silently, extra_headers=extra_headers)
 
     return msg
 
@@ -191,7 +190,9 @@ def _send(recipient_pks, recipient_emails, template_path, context, from_email,
         if isinstance(recipient, get_user_model()):
             activate(current_language)
 
-        return msg
+    return msg
+
+
 if use_celery:
     _send_task = task(_send)
 
